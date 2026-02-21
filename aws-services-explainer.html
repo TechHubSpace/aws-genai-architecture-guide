@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS AI Stack — Interview Ready</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --bedrock: #f59e0b;
+    --sagemaker: #10b981;
+    --lambda: #f97316;
+    --ecs: #6366f1;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --glow-bedrock: rgba(245,158,11,0.15);
+    --glow-sage: rgba(16,185,129,0.15);
+    --glow-lambda: rgba(249,115,22,0.15);
+    --glow-ecs: rgba(99,102,241,0.15);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    padding: 3rem 0 2rem;
+    animation: fadeDown 0.7s ease both;
+  }
+
+  .eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    color: var(--ecs);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1rem;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 1rem;
+    max-width: 560px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* Use case banner */
+  .usecase-banner {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--bedrock);
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin: 2rem 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--bedrock);
+    animation: fadeUp 0.7s 0.2s ease both;
+  }
+
+  .usecase-banner span {
+    color: var(--muted);
+    display: block;
+    font-size: 0.7rem;
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Flow diagram */
+  .flow-section {
+    margin: 2.5rem 0;
+    animation: fadeUp 0.7s 0.3s ease both;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .flow-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 120px;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.2s;
+  }
+
+  .flow-step:hover { transform: translateY(-4px); }
+
+  .flow-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    margin-bottom: 0.6rem;
+    transition: box-shadow 0.3s;
+  }
+
+  .flow-step:hover .flow-icon {
+    box-shadow: 0 0 24px currentColor;
+  }
+
+  .step-bedrock .flow-icon { background: var(--glow-bedrock); border: 1.5px solid var(--bedrock); color: var(--bedrock); }
+  .step-sagemaker .flow-icon { background: var(--glow-sage); border: 1.5px solid var(--sagemaker); color: var(--sagemaker); }
+  .step-lambda .flow-icon { background: var(--glow-lambda); border: 1.5px solid var(--lambda); color: var(--lambda); }
+  .step-ecs .flow-icon { background: var(--glow-ecs); border: 1.5px solid var(--ecs); color: var(--ecs); }
+  .step-user .flow-icon { background: rgba(255,255,255,0.05); border: 1.5px solid #475569; color: #94a3b8; }
+
+  .step-name {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.03em;
+  }
+
+  .step-bedrock .step-name { color: var(--bedrock); }
+  .step-sagemaker .step-name { color: var(--sagemaker); }
+  .step-lambda .step-name { color: var(--lambda); }
+  .step-ecs .step-name { color: var(--ecs); }
+  .step-user .step-name { color: #94a3b8; }
+
+  .step-tag {
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 0.2rem;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .flow-arrow {
+    flex: 1;
+    min-width: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .flow-arrow::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), var(--muted), var(--border));
+    transform: translateY(-50%);
+  }
+
+  .arrow-label {
+    background: var(--bg);
+    padding: 0 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.56rem;
+    color: var(--muted);
+    z-index: 1;
+    white-space: nowrap;
+  }
+
+  /* Service cards grid */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+    animation: fadeUp 0.7s 0.4s ease both;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .card-bedrock::before { background: radial-gradient(circle at top left, var(--glow-bedrock), transparent 70%); }
+  .card-sagemaker::before { background: radial-gradient(circle at top left, var(--glow-sage), transparent 70%); }
+  .card-lambda::before { background: radial-gradient(circle at top left, var(--glow-lambda), transparent 70%); }
+  .card-ecs::before { background: radial-gradient(circle at top left, var(--glow-ecs), transparent 70%); }
+
+  .card:hover::before { opacity: 1; }
+  .card:hover { transform: translateY(-3px); }
+  .card.active { border-color: currentColor; }
+  .card-bedrock.active { border-color: var(--bedrock); }
+  .card-sagemaker.active { border-color: var(--sagemaker); }
+  .card-lambda.active { border-color: var(--lambda); }
+  .card-ecs.active { border-color: var(--ecs); }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .card-icon {
+    font-size: 1.5rem;
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .card-bedrock .card-icon { background: var(--glow-bedrock); }
+  .card-sagemaker .card-icon { background: var(--glow-sage); }
+  .card-lambda .card-icon { background: var(--glow-lambda); }
+  .card-ecs .card-icon { background: var(--glow-ecs); }
+
+  .card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .card-bedrock .card-title { color: var(--bedrock); }
+  .card-sagemaker .card-title { color: var(--sagemaker); }
+  .card-lambda .card-title { color: var(--lambda); }
+  .card-ecs .card-title { color: var(--ecs); }
+
+  .card-subtitle {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .card-desc {
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .analogy-box {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.82rem;
+    color: var(--text);
+    line-height: 1.5;
+    border-left: 3px solid;
+  }
+
+  .card-bedrock .analogy-box { border-color: var(--bedrock); }
+  .card-sagemaker .analogy-box { border-color: var(--sagemaker); }
+  .card-lambda .analogy-box { border-color: var(--lambda); }
+  .card-ecs .analogy-box { border-color: var(--ecs); }
+
+  .analogy-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+    opacity: 0.6;
+  }
+
+  /* Detail panel */
+  .detail-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 0;
+    margin: 1.5rem 0;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.5s ease, opacity 0.3s;
+    opacity: 0;
+    animation: fadeUp 0.7s 0.5s ease both;
+  }
+
+  .detail-panel.open {
+    max-height: 600px;
+    opacity: 1;
+  }
+
+  .detail-inner {
+    padding: 2rem;
+  }
+
+  .detail-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+  }
+
+  .detail-steps {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .detail-step {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 0.75rem 1rem;
+    background: var(--surface2);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .step-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    min-width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .step-num-bedrock { background: var(--glow-bedrock); color: var(--bedrock); }
+  .step-num-sagemaker { background: var(--glow-sage); color: var(--sagemaker); }
+  .step-num-lambda { background: var(--glow-lambda); color: var(--lambda); }
+  .step-num-ecs { background: var(--glow-ecs); color: var(--ecs); }
+
+  .interview-tips {
+    margin-top: 2.5rem;
+    animation: fadeUp 0.7s 0.6s ease both;
+  }
+
+  .tips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .tip-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem;
+  }
+
+  .tip-q {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--ecs);
+    margin-bottom: 0.5rem;
+  }
+
+  .tip-a {
+    font-size: 0.83rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .tip-a strong {
+    color: var(--text);
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin: 2rem 0 1rem;
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .tab:hover { border-color: var(--muted); color: var(--text); }
+  .tab.active-tab { background: var(--ecs); border-color: var(--ecs); color: white; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+
+  .badge-bedrock { background: var(--glow-bedrock); color: var(--bedrock); }
+  .badge-sage { background: var(--glow-sage); color: var(--sagemaker); }
+  .badge-lambda { background: var(--glow-lambda); color: var(--lambda); }
+  .badge-ecs { background: var(--glow-ecs); color: var(--ecs); }
+
+  .vs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin-top: 1rem;
+  }
+  .vs-table th {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .vs-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .vs-table td:first-child {
+    font-weight: 700;
+    color: var(--text);
+    width: 140px;
+  }
+  .vs-table tr:last-child td { border-bottom: none; }
+  .vs-table tr:hover td { background: var(--surface2); }
+
+  @media (max-width: 600px) {
+    .flow-diagram { gap: 0; padding: 1rem 0.5rem; }
+    .flow-step { min-width: 80px; }
+    .flow-icon { width: 46px; height: 46px; font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="eyebrow">Interview Prep · AWS AI Stack</div>
+    <h1>4 AWS Services<br>Every AI Engineer Must Know</h1>
+    <p class="subtitle">Bedrock · SageMaker · Lambda · ECS/EKS — explained with a real use case, flow diagram, and interview-ready answers.</p>
+  </header>
+
+  <div class="usecase-banner">
+    <span>Real-World Use Case</span>
+    🎯 AI-Powered Customer Support Bot — A user asks a question → your system understands it using an LLM → routes it → gets an answer → responds in milliseconds
+  </div>
+
+  <!-- Flow Diagram -->
+  <div class="flow-section">
+    <div class="section-label">System Flow — Click any step to explore</div>
+    <div class="flow-diagram">
+      <div class="flow-step step-user" onclick="showDetail('user')">
+        <div class="flow-icon">👤</div>
+        <div class="step-name">User</div>
+        <div class="step-tag">Web / App</div>
+      </div>
+      <div class="flow-arrow"><div class="arrow-label">HTTP</div></div>
+      <div class="flow-step step-lambda" onclick="showDetail('lambda'); setActiveCard('lambda')">
+        <div class="flow-icon">⚡</div>
+        <div class="step-name">Lambda</div>
+        <div class="step-tag">API Handler</div>
+      </div>
+      <div class="flow-arrow"><div class="arrow-label">invoke</div></div>
+      <div class="flow-step step-bedrock" onclick="showDetail('bedrock'); setActiveCard('bedrock')">
+        <div class="flow-icon">🤖</div>
+        <div class="step-name">Bedrock</div>
+        <div class="step-tag">LLM / FM</div>
+      </div>
+      <div class="flow-arrow"><div class="arrow-label">predict</div></div>
+      <div class="flow-step step-sagemaker" onclick="showDetail('sagemaker'); setActiveCard('sagemaker')">
+        <div class="flow-icon">🧪</div>
+        <div class="step-name">SageMaker</div>
+        <div class="step-tag">Custom ML</div>
+      </div>
+      <div class="flow-arrow"><div class="arrow-label">serve</div></div>
+      <div class="flow-step step-ecs" onclick="showDetail('ecs'); setActiveCard('ecs')">
+        <div class="flow-icon">🐳</div>
+        <div class="step-name">ECS/EKS</div>
+        <div class="step-tag">Container App</div>
+      </div>
+      <div class="flow-arrow"><div class="arrow-label">respond</div></div>
+      <div class="flow-step step-user" onclick="showDetail('user')">
+        <div class="flow-icon">💬</div>
+        <div class="step-name">Answer</div>
+        <div class="step-tag">UI Response</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail panel -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-inner" id="detailContent"></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active-tab" onclick="switchTab('services', this)">Service Cards</button>
+    <button class="tab" onclick="switchTab('compare', this)">Quick Compare</button>
+    <button class="tab" onclick="switchTab('interview', this)">Interview Qs</button>
+  </div>
+
+  <!-- Service Cards -->
+  <div id="tab-services" class="tab-content active">
+    <div class="cards-grid">
+      <div class="card card-bedrock" id="card-bedrock" onclick="showDetail('bedrock'); setActiveCard('bedrock')">
+        <div class="card-header">
+          <div class="card-icon">🤖</div>
+          <div>
+            <div class="card-title">Bedrock</div>
+            <div class="card-subtitle">Managed FM API</div>
+          </div>
+        </div>
+        <p class="card-desc">Access powerful foundation models (Claude, Titan, Llama) via API — <strong>no GPU management</strong>. Just call the API and get intelligent responses.</p>
+        <div class="analogy-box">
+          <div class="analogy-label">🍕 Analogy</div>
+          Like ordering pizza from Domino's. You don't manage the kitchen — you just get the pizza.
+        </div>
+      </div>
+
+      <div class="card card-sagemaker" id="card-sagemaker" onclick="showDetail('sagemaker'); setActiveCard('sagemaker')">
+        <div class="card-header">
+          <div class="card-icon">🧪</div>
+          <div>
+            <div class="card-title">SageMaker</div>
+            <div class="card-subtitle">ML Platform</div>
+          </div>
+        </div>
+        <p class="card-desc">Train, tune, and deploy your <strong>own custom ML models</strong>. Full control over training data, algorithms, and endpoints.</p>
+        <div class="analogy-box">
+          <div class="analogy-label">👨‍🍳 Analogy</div>
+          Like having your own professional kitchen. You buy the ingredients, cook, and serve the food yourself.
+        </div>
+      </div>
+
+      <div class="card card-lambda" id="card-lambda" onclick="showDetail('lambda'); setActiveCard('lambda')">
+        <div class="card-header">
+          <div class="card-icon">⚡</div>
+          <div>
+            <div class="card-title">Lambda</div>
+            <div class="card-subtitle">Serverless Functions</div>
+          </div>
+        </div>
+        <p class="card-desc">Run code <strong>without provisioning servers</strong>. Pay per execution. Perfect for event-driven, short-lived tasks like handling API requests.</p>
+        <div class="analogy-box">
+          <div class="analogy-label">💡 Analogy</div>
+          Like a light switch — it turns on when needed, does its job instantly, and turns off. You only pay when it's on.
+        </div>
+      </div>
+
+      <div class="card card-ecs" id="card-ecs" onclick="showDetail('ecs'); setActiveCard('ecs')">
+        <div class="card-header">
+          <div class="card-icon">🐳</div>
+          <div>
+            <div class="card-title">ECS / EKS</div>
+            <div class="card-subtitle">Container Orchestration</div>
+          </div>
+        </div>
+        <p class="card-desc">Deploy <strong>long-running containerized apps</strong> at scale. ECS is AWS-native; EKS is managed Kubernetes. Great for microservices & APIs.</p>
+        <div class="analogy-box">
+          <div class="analogy-label">🏭 Analogy</div>
+          Like a factory with multiple assembly lines (containers) running 24/7, auto-scaling when demand spikes.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compare Tab -->
+  <div id="tab-compare" class="tab-content">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-top:1rem;">
+      <table class="vs-table">
+        <thead>
+          <tr>
+            <th>Factor</th>
+            <th>Bedrock <span class="badge badge-bedrock">FM API</span></th>
+            <th>SageMaker <span class="badge badge-sage">Custom ML</span></th>
+            <th>Lambda <span class="badge badge-lambda">Serverless</span></th>
+            <th>ECS/EKS <span class="badge badge-ecs">Containers</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Use for</td>
+            <td>Pre-built LLMs via API</td>
+            <td>Custom model training</td>
+            <td>Short event-driven tasks</td>
+            <td>Long-running services</td>
+          </tr>
+          <tr>
+            <td>Servers?</td>
+            <td>None — fully managed</td>
+            <td>Managed instances</td>
+            <td>None — serverless</td>
+            <td>You manage containers</td>
+          </tr>
+          <tr>
+            <td>Cold start</td>
+            <td>None</td>
+            <td>Endpoint warm-up</td>
+            <td>~100ms–2s</td>
+            <td>None (always on)</td>
+          </tr>
+          <tr>
+            <td>Max runtime</td>
+            <td>Varies by model</td>
+            <td>Hours (training)</td>
+            <td>15 minutes</td>
+            <td>Unlimited</td>
+          </tr>
+          <tr>
+            <td>Pricing</td>
+            <td>Per token</td>
+            <td>Instance hours</td>
+            <td>Per ms + invocations</td>
+            <td>Per container hour</td>
+          </tr>
+          <tr>
+            <td>Best for</td>
+            <td>GenAI apps, chatbots</td>
+            <td>Specialized models</td>
+            <td>API hooks, triggers</td>
+            <td>Web apps, microservices</td>
+          </tr>
+          <tr>
+            <td>In our use case</td>
+            <td>Calls Claude for NLP</td>
+            <td>Custom intent classifier</td>
+            <td>Handles user request</td>
+            <td>Hosts the chat backend</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Interview Tab -->
+  <div id="tab-interview" class="tab-content">
+    <div class="tips-grid" style="margin-top:1rem;">
+      <div class="tip-card">
+        <div class="tip-q">Q: When would you use Bedrock over SageMaker?</div>
+        <div class="tip-a"><strong>Use Bedrock</strong> when you need a powerful LLM fast — no training, no infra. Use <strong>SageMaker</strong> when you need a custom model trained on proprietary data or need a specialized algorithm.</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-q">Q: Why Lambda instead of ECS for this flow?</div>
+        <div class="tip-a"><strong>Lambda</strong> handles the inbound API call because it's <strong>event-driven, short-lived, and scales instantly</strong> with zero management. <strong>ECS</strong> hosts the persistent chat service that needs to be always available.</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-q">Q: What's the difference between ECS and EKS?</div>
+        <div class="tip-a"><strong>ECS</strong> is AWS's proprietary container service — simpler, tightly integrated. <strong>EKS</strong> is managed Kubernetes — more portable, industry-standard, better for multi-cloud or complex orchestration.</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-q">Q: How does Bedrock fit into your AI architecture?</div>
+        <div class="tip-a">Bedrock is the <strong>intelligence layer</strong>. It sits behind Lambda — Lambda receives user input, sanitizes it, calls Bedrock's API (e.g. Claude), and returns the response. <strong>No model hosting needed.</strong></div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-q">Q: What are Lambda's limitations?</div>
+        <div class="tip-a">Max <strong>15 min execution</strong>, no persistent state, cold start latency (~100ms–2s), 10GB memory limit. For long-running or stateful workloads → use <strong>ECS/EKS or Step Functions</strong>.</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-q">Q: Describe the full flow for an AI chatbot.</div>
+        <div class="tip-a">User → <strong>API Gateway</strong> → <strong>Lambda</strong> (validates request) → <strong>Bedrock</strong> (generates reply via Claude) → optionally calls <strong>SageMaker</strong> endpoint for custom scoring → reply served via <strong>ECS-hosted backend</strong>.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const details = {
+  user: {
+    title: '👤 User — The Starting Point',
+    color: '#94a3b8',
+    steps: [
+      { cls: 'step-num-ecs', n: '1', text: 'User types a question into a chat UI — "What is my account balance?" or "I need to return my order."' },
+      { cls: 'step-num-ecs', n: '2', text: 'The browser sends an HTTP POST request to your AWS API Gateway endpoint.' },
+      { cls: 'step-num-ecs', n: '3', text: 'API Gateway acts as the front door — it receives the request and triggers a Lambda function.' }
+    ]
+  },
+  lambda: {
+    title: '⚡ Lambda — The Smart Receptionist',
+    color: '#f97316',
+    steps: [
+      { cls: 'step-num-lambda', n: '1', text: 'Lambda function wakes up instantly (serverless — no server to manage!) when the API Gateway triggers it.' },
+      { cls: 'step-num-lambda', n: '2', text: 'It validates and sanitizes the user input, extracts context, and decides what to do next.' },
+      { cls: 'step-num-lambda', n: '3', text: 'It calls AWS Bedrock API with the user\'s question, passing the right model ID (e.g. anthropic.claude-v2).' },
+      { cls: 'step-num-lambda', n: '4', text: 'After getting the response, Lambda formats it and returns it to the user. Total time: ~1–3 seconds.' }
+    ]
+  },
+  bedrock: {
+    title: '🤖 Bedrock — The AI Brain',
+    color: '#f59e0b',
+    steps: [
+      { cls: 'step-num-bedrock', n: '1', text: 'Bedrock hosts pre-trained foundation models — Claude (Anthropic), Titan (Amazon), Llama (Meta), Stable Diffusion (images).' },
+      { cls: 'step-num-bedrock', n: '2', text: 'Lambda calls InvokeModel API. Bedrock runs the LLM and returns a natural language response.' },
+      { cls: 'step-num-bedrock', n: '3', text: 'You can also use Bedrock Agents to connect LLMs to tools, databases, or APIs via ReAct-style reasoning.' },
+      { cls: 'step-num-bedrock', n: '4', text: 'No GPU provisioning, no model downloads — AWS manages all the infrastructure. You pay per token.' }
+    ]
+  },
+  sagemaker: {
+    title: '🧪 SageMaker — Your Custom ML Lab',
+    color: '#10b981',
+    steps: [
+      { cls: 'step-num-sagemaker', n: '1', text: 'You train a custom intent classifier (e.g. "billing", "return", "technical") on your company\'s specific support data.' },
+      { cls: 'step-num-sagemaker', n: '2', text: 'SageMaker provides managed notebooks (Studio), distributed training, and automatic hyperparameter tuning.' },
+      { cls: 'step-num-sagemaker', n: '3', text: 'After training, you deploy the model to a SageMaker Endpoint — a managed REST API for real-time predictions.' },
+      { cls: 'step-num-sagemaker', n: '4', text: 'Lambda calls this endpoint to classify user intent first, then routes to Bedrock for the actual natural language response.' }
+    ]
+  },
+  ecs: {
+    title: '🐳 ECS/EKS — The Always-On Backend',
+    color: '#6366f1',
+    steps: [
+      { cls: 'step-num-ecs', n: '1', text: 'Your chat application backend (Node.js/Python FastAPI) is containerized with Docker and deployed to ECS.' },
+      { cls: 'step-num-ecs', n: '2', text: 'ECS manages the container lifecycle — health checks, auto-scaling, load balancing across multiple tasks.' },
+      { cls: 'step-num-ecs', n: '3', text: 'Unlike Lambda (15 min limit), ECS runs 24/7 — perfect for WebSocket connections, session management, and chat history.' },
+      { cls: 'step-num-ecs', n: '4', text: 'EKS is used when you need Kubernetes-native features — multi-cloud portability, Helm charts, or advanced scheduling.' }
+    ]
+  }
+};
+
+function showDetail(key) {
+  const d = details[key];
+  if (!d) return;
+  const panel = document.getElementById('detailPanel');
+  const content = document.getElementById('detailContent');
+
+  const stepsHtml = d.steps.map(s => `
+    <div class="detail-step">
+      <div class="step-num ${s.cls}">${s.n}</div>
+      <div>${s.text}</div>
+    </div>
+  `).join('');
+
+  content.innerHTML = `
+    <div class="detail-title" style="color:${d.color}">${d.title}</div>
+    <div class="detail-steps">${stepsHtml}</div>
+  `;
+
+  if (!panel.classList.contains('open')) {
+    panel.classList.add('open');
+  } else {
+    panel.style.opacity = '0';
+    setTimeout(() => { panel.style.opacity = '1'; }, 50);
+  }
+
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function setActiveCard(key) {
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+  const el = document.getElementById('card-' + key);
+  if (el) el.classList.add('active');
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active-tab'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active-tab');
+}
+</script>
+</body>
+</html>

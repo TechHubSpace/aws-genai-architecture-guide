@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build an AI Agent with AWS Bedrock + Lambda</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f0e8;
+  --ink: #1a1208;
+  --ink2: #3d2f18;
+  --muted: #8a7560;
+  --surface: #efe9dc;
+  --surface2: #e8e0cf;
+  --border: #d4c9b4;
+  --amber: #c8760a;
+  --amber-lt: #f5d49a;
+  --amber-glow: rgba(200,118,10,0.12);
+  --green: #2d7a4f;
+  --green-lt: #c8e6d5;
+  --blue: #1a4d8a;
+  --blue-lt: #c8daf5;
+  --red: #c0392b;
+  --red-lt: #fad4d0;
+  --teal: #1a6e6e;
+  --teal-lt: #c4e8e8;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* Grain texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.5;
+}
+
+/* ─── SIDEBAR NAV ─── */
+.sidebar {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: 240px;
+  background: var(--ink);
+  padding: 2rem 0;
+  z-index: 100;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-logo {
+  padding: 0 1.5rem 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 1.5rem;
+}
+
+.sidebar-logo .logo-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 0.3rem;
+}
+
+.sidebar-logo h2 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.nav-section {
+  padding: 0 1rem;
+  margin-bottom: 0.3rem;
+}
+
+.nav-section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  padding: 0 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.8rem;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.nav-item.active { background: var(--amber-glow); color: var(--amber); border-left: 2px solid var(--amber); }
+
+.nav-item .nav-num {
+  font-size: 0.6rem;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.08);
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.nav-item.active .nav-num { background: var(--amber); color: var(--ink); }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  color: rgba(255,255,255,0.2);
+  line-height: 1.6;
+}
+
+/* ─── MAIN CONTENT ─── */
+.main {
+  margin-left: 240px;
+  min-height: 100vh;
+}
+
+/* ─── HERO ─── */
+.hero {
+  background: var(--ink);
+  color: #fff;
+  padding: 5rem 4rem 4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -100px; right: -100px;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(200,118,10,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--amber), transparent);
+}
+
+.hero-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.hero-eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 30px; height: 1px;
+  background: var(--amber);
+}
+
+.hero h1 {
+  font-size: clamp(2.2rem, 4vw, 3.5rem);
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 1.2rem;
+  max-width: 700px;
+}
+
+.hero h1 em {
+  font-style: italic;
+  color: var(--amber);
+}
+
+.hero-desc {
+  color: rgba(255,255,255,0.6);
+  max-width: 580px;
+  font-size: 1rem;
+  line-height: 1.7;
+  margin-bottom: 2rem;
+}
+
+.hero-badges {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.hero-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 4px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.badge-amber { background: rgba(200,118,10,0.2); color: var(--amber); border: 1px solid rgba(200,118,10,0.3); }
+.badge-green { background: rgba(45,122,79,0.2); color: #4ade80; border: 1px solid rgba(45,122,79,0.3); }
+.badge-blue { background: rgba(26,77,138,0.2); color: #60a5fa; border: 1px solid rgba(26,77,138,0.3); }
+
+/* ─── ARCHITECTURE OVERVIEW ─── */
+.section {
+  padding: 3rem 4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.section:last-child { border-bottom: none; }
+
+.section-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+
+.section h2 {
+  font-size: 1.8rem;
+  font-weight: 900;
+  margin-bottom: 1rem;
+  color: var(--ink);
+}
+
+.section p {
+  color: var(--ink2);
+  max-width: 700px;
+  margin-bottom: 1.5rem;
+}
+
+/* ─── ARCHITECTURE DIAGRAM ─── */
+.arch-diagram {
+  background: var(--ink);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  margin: 2rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.arch-diagram::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(200,118,10,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,118,10,0.04) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+.arch-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.arch-box {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  text-align: center;
+  min-width: 110px;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+}
+
+.arch-box:hover {
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-3px);
+}
+
+.arch-box .box-icon { font-size: 1.6rem; margin-bottom: 0.3rem; display: block; }
+.arch-box .box-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.arch-box .box-sub {
+  font-size: 0.6rem;
+  opacity: 0.4;
+  margin-top: 0.15rem;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.arch-box.user .box-name { color: #94a3b8; }
+.arch-box.apigw .box-name { color: #f472b6; }
+.arch-box.lambda-box .box-name { color: #fb923c; }
+.arch-box.bedrock-box .box-name { color: #fbbf24; }
+.arch-box.tools .box-name { color: #34d399; }
+.arch-box.action .box-name { color: #60a5fa; }
+.arch-box.kb .box-name { color: #a78bfa; }
+
+.arch-box.bedrock-box {
+  border-color: rgba(251,191,36,0.4);
+  background: rgba(251,191,36,0.06);
+}
+
+.arch-arrow {
+  color: rgba(255,255,255,0.2);
+  font-size: 1rem;
+  padding: 0 0.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.arch-arrow .arr-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.5rem;
+  color: rgba(255,255,255,0.25);
+  white-space: nowrap;
+}
+
+.arch-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 1.5rem;
+  gap: 0;
+}
+
+.arch-v-arrow {
+  color: rgba(255,255,255,0.15);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.3rem 0;
+}
+
+.arch-v-arrow .arr-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.5rem;
+  color: rgba(255,255,255,0.2);
+}
+
+.tools-row {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ─── STEP CARDS ─── */
+.steps-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.step-card {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  transition: box-shadow 0.25s;
+  background: white;
+}
+
+.step-card:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+.step-num-col {
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 1.5rem 0.5rem;
+  gap: 0.5rem;
+}
+
+.step-big-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--amber);
+  line-height: 1;
+}
+
+.step-icon-big {
+  font-size: 1.4rem;
+  margin-top: 0.3rem;
+}
+
+.step-body {
+  padding: 1.5rem 2rem;
+}
+
+.step-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+  gap: 1rem;
+}
+
+.step-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.step-service-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.step-desc {
+  color: var(--ink2);
+  font-size: 0.92rem;
+  line-height: 1.7;
+  margin-bottom: 1.2rem;
+}
+
+/* Code blocks */
+.code-block {
+  background: var(--ink);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 1rem 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.code-lang {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.code-filename {
+  font-size: 0.62rem;
+  color: rgba(255,255,255,0.3);
+}
+
+.copy-btn {
+  font-size: 0.6rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.4);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.05em;
+  transition: all 0.2s;
+}
+
+.copy-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+
+.code-body {
+  padding: 1.2rem 1.2rem;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+/* Syntax highlight colors */
+.kw { color: #f97316; }
+.fn { color: #fbbf24; }
+.st { color: #86efac; }
+.cm { color: #475569; font-style: italic; }
+.nb { color: #93c5fd; }
+.op { color: #e2e8f0; }
+.co { color: #c084fc; }
+.nm { color: #e2e8f0; }
+
+/* Tip / warning / info boxes */
+.callout {
+  border-radius: 8px;
+  padding: 0.9rem 1.2rem;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+}
+
+.callout-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.1rem; }
+
+.callout.tip { background: var(--green-lt); border-left: 3px solid var(--green); color: #14532d; }
+.callout.warn { background: var(--amber-lt); border-left: 3px solid var(--amber); color: #7c2d12; }
+.callout.info { background: var(--blue-lt); border-left: 3px solid var(--blue); color: #1e3a5f; }
+.callout.key { background: #f3e8ff; border-left: 3px solid #9333ea; color: #3b0764; }
+
+/* Sub-steps */
+.sub-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.sub-step {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  padding: 0.7rem 1rem;
+  background: var(--surface);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--ink2);
+  border: 1px solid var(--border);
+}
+
+.sub-step-dot {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* ─── AGENTIC LOOP DIAGRAM ─── */
+.agent-loop {
+  background: var(--ink);
+  border-radius: 16px;
+  padding: 2rem;
+  margin: 1.5rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.loop-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.loop-steps {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.loop-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 90px;
+}
+
+.loop-circle {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  border: 2px solid;
+  transition: transform 0.3s;
+}
+
+.loop-step:hover .loop-circle { transform: scale(1.1); }
+
+.lc-1 { border-color: #fbbf24; background: rgba(251,191,36,0.1); }
+.lc-2 { border-color: #60a5fa; background: rgba(96,165,250,0.1); }
+.lc-3 { border-color: #34d399; background: rgba(52,211,153,0.1); }
+.lc-4 { border-color: #f87171; background: rgba(248,113,113,0.1); }
+.lc-5 { border-color: #a78bfa; background: rgba(167,139,250,0.1); }
+
+.loop-step-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  text-align: center;
+  color: rgba(255,255,255,0.6);
+  line-height: 1.3;
+  max-width: 80px;
+}
+
+.loop-arrow-h {
+  color: rgba(255,255,255,0.15);
+  font-size: 1.3rem;
+  padding: 0 0.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.loop-back {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.5rem;
+  color: rgba(255,255,255,0.1);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  gap: 0.5rem;
+}
+
+.loop-back-line {
+  flex: 1;
+  max-width: 300px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), rgba(167,139,250,0.4), rgba(255,255,255,0.1), transparent);
+}
+
+/* ─── COMPARISON TABLE ─── */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin: 1.5rem 0;
+}
+
+.compare-table th {
+  background: var(--ink);
+  color: rgba(255,255,255,0.7);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 0.75rem 1rem;
+}
+
+.compare-table th:first-child { border-radius: 8px 0 0 0; }
+.compare-table th:last-child { border-radius: 0 8px 0 0; }
+
+.compare-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink2);
+  vertical-align: top;
+}
+
+.compare-table td:first-child {
+  font-weight: 700;
+  color: var(--ink);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+}
+
+.compare-table tr:hover td { background: var(--surface); }
+
+.check { color: var(--green); font-size: 0.9rem; }
+.cross { color: var(--red); font-size: 0.9rem; }
+
+/* ─── INTERVIEW SECTION ─── */
+.interview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.interview-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.2rem;
+}
+
+.iq {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--amber);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.ia {
+  font-size: 0.85rem;
+  color: var(--ink2);
+  line-height: 1.65;
+}
+
+.ia strong { color: var(--ink); }
+
+/* ─── PROGRESS TRACKER ─── */
+.progress-bar {
+  position: fixed;
+  top: 0;
+  left: 240px; right: 0;
+  height: 3px;
+  background: rgba(200,118,10,0.1);
+  z-index: 200;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber), #f5c842);
+  width: 0%;
+  transition: width 0.1s;
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .progress-bar { left: 0; }
+  .hero { padding: 3rem 1.5rem 2.5rem; }
+  .section { padding: 2rem 1.5rem; }
+  .step-card { grid-template-columns: 60px 1fr; }
+  .interview-grid { grid-template-columns: 1fr; }
+}
+
+/* ─── ANIMATIONS ─── */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ─── SCROLL INDICATOR ─── */
+.scroll-hint {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--ink);
+  color: rgba(255,255,255,0.5);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  z-index: 99;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-eyebrow">Step-by-Step Guide</div>
+    <h2>AWS Bedrock Agent + Lambda</h2>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Overview</div>
+    <a class="nav-item active" href="#intro" onclick="setActive(this)">
+      <span class="nav-num">◆</span> What is an AI Agent?
+    </a>
+    <a class="nav-item" href="#architecture" onclick="setActive(this)">
+      <span class="nav-num">◆</span> Architecture
+    </a>
+  </div>
+
+  <div class="nav-section" style="margin-top:1rem">
+    <div class="nav-section-label">Build Steps</div>
+    <a class="nav-item" href="#step1" onclick="setActive(this)">
+      <span class="nav-num">1</span> Setup & IAM
+    </a>
+    <a class="nav-item" href="#step2" onclick="setActive(this)">
+      <span class="nav-num">2</span> Lambda Tools
+    </a>
+    <a class="nav-item" href="#step3" onclick="setActive(this)">
+      <span class="nav-num">3</span> Action Group
+    </a>
+    <a class="nav-item" href="#step4" onclick="setActive(this)">
+      <span class="nav-num">4</span> Knowledge Base
+    </a>
+    <a class="nav-item" href="#step5" onclick="setActive(this)">
+      <span class="nav-num">5</span> Create Agent
+    </a>
+    <a class="nav-item" href="#step6" onclick="setActive(this)">
+      <span class="nav-num">6</span> Invoke Agent
+    </a>
+    <a class="nav-item" href="#step7" onclick="setActive(this)">
+      <span class="nav-num">7</span> Test & Monitor
+    </a>
+  </div>
+
+  <div class="nav-section" style="margin-top:1rem">
+    <div class="nav-section-label">Reference</div>
+    <a class="nav-item" href="#interview" onclick="setActive(this)">
+      <span class="nav-num">◆</span> Interview Q&A
+    </a>
+  </div>
+
+  <div class="sidebar-footer">
+    Agentic AI · Bedrock · Lambda<br>
+    Production-Ready Guide
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- HERO -->
+  <section class="hero" id="intro">
+    <div class="hero-eyebrow">Agentic AI on AWS · End-to-End Tutorial</div>
+    <h1>Build an <em>AI Agent</em> with<br>AWS Bedrock & Lambda</h1>
+    <p class="hero-desc">A production-ready, step-by-step guide to building an autonomous AI agent that thinks, decides, and takes actions using Bedrock Agents, Lambda functions, and Knowledge Bases — explained clearly for interviews.</p>
+    <div class="hero-badges">
+      <span class="hero-badge badge-amber">AWS Bedrock Agents</span>
+      <span class="hero-badge badge-green">Lambda Functions</span>
+      <span class="hero-badge badge-blue">Knowledge Base (RAG)</span>
+      <span class="hero-badge badge-amber">ReAct Loop</span>
+      <span class="hero-badge badge-green">OpenAPI Schema</span>
+    </div>
+  </section>
+
+  <!-- WHAT IS AN AI AGENT -->
+  <section class="section reveal" id="what-is">
+    <div class="section-eyebrow">Core Concept</div>
+    <h2>What Makes an "Agent" Different?</h2>
+    <p>A regular LLM just <em>responds</em>. An AI Agent <em>reasons, plans, and acts</em> — it can call tools, search databases, make API calls, and loop until it solves your problem.</p>
+
+    <div class="agent-loop">
+      <div class="loop-title">The ReAct Loop — How Bedrock Agents Think</div>
+      <div class="loop-steps">
+        <div class="loop-step">
+          <div class="loop-circle lc-1">💬</div>
+          <div class="loop-step-name">User Input</div>
+        </div>
+        <div class="loop-arrow-h">→</div>
+        <div class="loop-step">
+          <div class="loop-circle lc-2">🧠</div>
+          <div class="loop-step-name">Bedrock Thinks (Claude)</div>
+        </div>
+        <div class="loop-arrow-h">→</div>
+        <div class="loop-step">
+          <div class="loop-circle lc-3">🔧</div>
+          <div class="loop-step-name">Call a Tool (Lambda)</div>
+        </div>
+        <div class="loop-arrow-h">→</div>
+        <div class="loop-step">
+          <div class="loop-circle lc-4">📊</div>
+          <div class="loop-step-name">Observe Result</div>
+        </div>
+        <div class="loop-arrow-h">→</div>
+        <div class="loop-step">
+          <div class="loop-circle lc-5">✅</div>
+          <div class="loop-step-name">Final Answer or Loop Again</div>
+        </div>
+      </div>
+      <div class="loop-back">
+        <div class="loop-back-line"></div>
+        <span>loops until task complete</span>
+        <div class="loop-back-line"></div>
+      </div>
+    </div>
+
+    <div class="callout key">
+      <span class="callout-icon">🔑</span>
+      <div><strong>Interview Key Point:</strong> Bedrock Agents use the <strong>ReAct (Reason + Act)</strong> framework. The model reads a system prompt, reasons about what to do, calls a Lambda tool, reads the result, and reasons again — looping until it produces a final answer.</div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section class="section reveal" id="architecture">
+    <div class="section-eyebrow">System Design</div>
+    <h2>Full Architecture Overview</h2>
+    <p>This is what we're building — an AI customer support agent that can check order status, search a knowledge base, and escalate to a human if needed.</p>
+
+    <div class="arch-diagram">
+      <div class="arch-row">
+        <div class="arch-box user">
+          <span class="box-icon">👤</span>
+          <div class="box-name">User</div>
+          <div class="box-sub">App / Web / CLI</div>
+        </div>
+        <div class="arch-arrow">
+          <div>→</div>
+          <div class="arr-label">HTTP POST</div>
+        </div>
+        <div class="arch-box apigw">
+          <span class="box-icon">🚪</span>
+          <div class="box-name">API Gateway</div>
+          <div class="box-sub">Entry Point</div>
+        </div>
+        <div class="arch-arrow">
+          <div>→</div>
+          <div class="arr-label">trigger</div>
+        </div>
+        <div class="arch-box lambda-box">
+          <span class="box-icon">⚡</span>
+          <div class="box-name">Lambda Orchestrator</div>
+          <div class="box-sub">Invokes Agent</div>
+        </div>
+        <div class="arch-arrow">
+          <div>→</div>
+          <div class="arr-label">invoke</div>
+        </div>
+        <div class="arch-box bedrock-box">
+          <span class="box-icon">🤖</span>
+          <div class="box-name">Bedrock Agent</div>
+          <div class="box-sub">Claude FM + ReAct</div>
+        </div>
+      </div>
+
+      <div class="arch-vertical">
+        <div class="arch-v-arrow">
+          <div class="arr-label" style="color:rgba(255,255,255,0.2)">Agent calls tools ↓</div>
+        </div>
+        <div class="tools-row">
+          <div class="arch-box tools">
+            <span class="box-icon">📦</span>
+            <div class="box-name">Lambda: get_order</div>
+            <div class="box-sub">Action Tool #1</div>
+          </div>
+          <div class="arch-box action">
+            <span class="box-icon">📧</span>
+            <div class="box-name">Lambda: send_email</div>
+            <div class="box-sub">Action Tool #2</div>
+          </div>
+          <div class="arch-box kb">
+            <span class="box-icon">📚</span>
+            <div class="box-name">Knowledge Base</div>
+            <div class="box-sub">S3 + OpenSearch RAG</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <span class="callout-icon">ℹ️</span>
+      <div><strong>Use Case:</strong> User asks "Where is order #12345?" → Agent calls <code>get_order</code> Lambda → reads result → responds with tracking info. If policy question → Agent searches Knowledge Base (RAG) instead. All decided by the LLM automatically.</div>
+    </div>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="section reveal" id="step1">
+    <div class="section-eyebrow">Step 1 of 7</div>
+    <h2>AWS Setup & IAM Permissions</h2>
+
+    <div class="step-card">
+      <div class="step-num-col">
+        <div class="step-big-num">01</div>
+        <div class="step-icon-big">🔐</div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <div class="step-title">Create IAM Role for Bedrock Agent</div>
+          <span class="step-service-badge" style="background:#fef3c7;color:#92400e">IAM · Bedrock</span>
+        </div>
+        <p class="step-desc">The Bedrock Agent needs an IAM role that lets it invoke Lambda functions and access your Knowledge Base. This is the foundation — get this wrong and nothing will work.</p>
+
+        <div class="sub-steps">
+          <div class="sub-step">
+            <div class="sub-step-dot" style="background:#fef3c7;color:#92400e">A</div>
+            <div>Go to <strong>IAM Console → Roles → Create Role</strong>. Select "Custom trust policy".</div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-step-dot" style="background:#fef3c7;color:#92400e">B</div>
+            <div>Trust principal: <code>bedrock.amazonaws.com</code> — this lets Bedrock assume this role.</div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-step-dot" style="background:#fef3c7;color:#92400e">C</div>
+            <div>Attach policies: <code>AmazonBedrockFullAccess</code> + inline policy for Lambda invoke.</div>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">JSON</span>
+            <span class="code-filename">iam-trust-policy.json</span>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          </div>
+          <div class="code-body"><pre><span class="op">{</span>
+  <span class="st">"Version"</span><span class="op">:</span> <span class="st">"2012-10-17"</span><span class="op">,</span>
+  <span class="st">"Statement"</span><span class="op">: [</span>
+    <span class="op">{</span>
+      <span class="st">"Effect"</span><span class="op">:</span> <span class="st">"Allow"</span><span class="op">,</span>
+      <span class="st">"Principal"</span><span class="op">:</span> <span class="op">{</span> <span class="st">"Service"</span><span class="op">:</span> <span class="st">"bedrock.amazonaws.com"</span> <span class="op">},</span>
+      <span class="st">"Action"</span><span class="op">:</span> <span class="st">"sts:AssumeRole"</span><span class="op">,</span>
+      <span class="st">"Condition"</span><span class="op">:</span> <span class="op">{</span>
+        <span class="st">"StringEquals"</span><span class="op">:</span> <span class="op">{</span>
+          <span class="st">"aws:SourceAccount"</span><span class="op">:</span> <span class="st">"YOUR_ACCOUNT_ID"</span>
+        <span class="op">}</span>
+      <span class="op">}</span>
+    <span class="op">}</span>
+  <span class="op">]</span>
+<span class="op">}</span></pre></div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">JSON</span>
+            <span class="code-filename">bedrock-agent-permissions.json</span>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          </div>
+          <div class="code-body"><pre><span class="cm">// Attach as inline policy to the role</span>
+<span class="op">{</span>
+  <span class="st">"Version"</span><span class="op">:</span> <span class="st">"2012-10-17"</span><span class="op">,</span>
+  <span class="st">"Statement"</span><span class="op">: [</span>
+    <span class="op">{</span>
+      <span class="st">"Effect"</span><span class="op">:</span> <span class="st">"Allow"</span><span class="op">,</span>
+      <span class="st">"Action"</span><span class="op">:</span> <span class="op">[</span>
+        <span class="st">"bedrock:InvokeModel"</span><span class="op">,</span>
+        <span class="st">"bedrock:Retrieve"</span><span class="op">,</span>
+        <span class="st">"bedrock:RetrieveAndGenerate"</span>
+      <span class="op">],</span>
+      <span class="st">"Resource"</span><span class="op">:</span> <span class="st">"*"</span>
+    <span class="op">},</span>
+    <span class="op">{</span>
+      <span class="st">"Effect"</span><span class="op">:</span> <span class="st">"Allow"</span><span class="op">,</span>
+      <span class="st">"Action"</span><span class="op">:</span> <span class="op">[</span><span class="st">"lambda:InvokeFunction"</span><span class="op">],</span>
+      <span class="st">"Resource"</span><span class="op">:</span> <span class="st">"arn:aws:lambda:*:YOUR_ACCOUNT:function:agent-*"</span>
+    <span class="op">}</span>
+  <span class="op">]</span>
+<span class="op">}</span></pre></div>
+        </div>
+
+        <div class="callout warn">
+          <span class="callout-icon">⚠️</span>
+          <div><strong>Interview tip:</strong> Always restrict Lambda ARN to <code>agent-*</code> prefix pattern instead of <code>"*"</code>. Principle of least privilege is a key AWS best practice interviewers love to hear.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="section reveal" id="step2">
+    <div class="section-eyebrow">Step 2 of 7</div>
+    <h2>Build the Lambda Tool Functions</h2>
+
+    <div class="step-card">
+      <div class="step-num-col">
+        <div class="step-big-num">02</div>
+        <div class="step-icon-big">⚡</div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <div class="step-title">Create Lambda Functions as Agent Tools</div>
+          <span class="step-service-badge" style="background:#ffedd5;color:#9a3412">Lambda</span>
+        </div>
+        <p class="step-desc">Each Lambda function is a "tool" the agent can call. The function receives structured parameters from the agent and returns a result. This is <strong>the most important code you'll write</strong> — the agent uses these to take real actions.</p>
+
+        <div class="callout info">
+          <span class="callout-icon">📌</span>
+          <div><strong>Contract:</strong> Bedrock sends your Lambda a specific event shape with <code>actionGroup</code>, <code>function</code>, and <code>parameters</code>. Your Lambda MUST return the exact response format shown below.</div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">Python</span>
+            <span class="code-filename">lambda_order_tool.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          </div>
+          <div class="code-body"><pre><span class="kw">import</span> <span class="nb">json</span>
+<span class="kw">import</span> <span class="nb">boto3</span>
+
+<span class="cm"># ─── Bedrock Agent Lambda Tool ───────────────────────────────
+# This Lambda is called by the Bedrock Agent when it decides
+# to use the "get_order_status" tool.
+# ─────────────────────────────────────────────────────────────</span>
+
+<span class="kw">def</span> <span class="fn">lambda_handler</span>(event, context):
+    <span class="cm"># Step 1: Parse the agent's call</span>
+    action_group = event[<span class="st">"actionGroup"</span>]   <span class="cm"># e.g. "OrderActions"</span>
+    function     = event[<span class="st">"function"</span>]      <span class="cm"># e.g. "get_order_status"</span>
+    parameters   = event.get(<span class="st">"parameters"</span>, [])
+
+    <span class="cm"># Step 2: Extract params (agent sends as list of {name, value})</span>
+    params = {p[<span class="st">"name"</span>]: p[<span class="st">"value"</span>] <span class="kw">for</span> p <span class="kw">in</span> parameters}
+
+    <span class="cm"># Step 3: Route to the right function</span>
+    <span class="kw">if</span> function == <span class="st">"get_order_status"</span>:
+        result = get_order_status(params[<span class="st">"order_id"</span>])
+    <span class="kw">elif</span> function == <span class="st">"cancel_order"</span>:
+        result = cancel_order(params[<span class="st">"order_id"</span>])
+    <span class="kw">else</span>:
+        result = {<span class="st">"error"</span>: <span class="st">"Unknown function"</span>}
+
+    <span class="cm"># Step 4: Return the EXACT format Bedrock expects</span>
+    <span class="kw">return</span> {
+        <span class="st">"messageVersion"</span>: <span class="st">"1.0"</span>,
+        <span class="st">"response"</span>: {
+            <span class="st">"actionGroup"</span>: action_group,
+            <span class="st">"function"</span>:    function,
+            <span class="st">"functionResponse"</span>: {
+                <span class="st">"responseBody"</span>: {
+                    <span class="st">"TEXT"</span>: {
+                        <span class="st">"body"</span>: json.dumps(result)  <span class="cm"># must be string</span>
+                    }
+                }
+            }
+        }
+    }
+
+<span class="cm"># ─── Your actual business logic ───────────────────────────────</span>
+<span class="kw">def</span> <span class="fn">get_order_status</span>(order_id):
+    <span class="cm"># In production: query DynamoDB / RDS / your order API</span>
+    orders = {
+        <span class="st">"ORD-001"</span>: {<span class="st">"status"</span>: <span class="st">"Shipped"</span>, <span class="st">"eta"</span>: <span class="st">"Feb 20"</span>, <span class="st">"carrier"</span>: <span class="st">"UPS"</span>},
+        <span class="st">"ORD-002"</span>: {<span class="st">"status"</span>: <span class="st">"Processing"</span>, <span class="st">"eta"</span>: <span class="st">"Feb 22"</span>},
+    }
+    <span class="kw">return</span> orders.get(order_id, {<span class="st">"error"</span>: <span class="st">"Order not found"</span>})
+
+<span class="kw">def</span> <span class="fn">cancel_order</span>(order_id):
+    <span class="cm"># In production: call your order management system</span>
+    <span class="kw">return</span> {<span class="st">"success"</span>: <span class="nb">True</span>, <span class="st">"message"</span>: <span class="nb">f</span><span class="st">f"Order {order_id} cancelled"</span>}</pre></div>
+        </div>
+
+        <div class="callout tip">
+          <span class="callout-icon">✅</span>
+          <div><strong>Critical:</strong> The <code>responseBody.TEXT.body</code> must be a <strong>JSON string</strong> (not an object). Wrap your dict with <code>json.dumps()</code>. This is a common bug that breaks agents silently.</div>
+        </div>
+
+        <div class="sub-steps">
+          <div class="sub-step">
+            <div class="sub-step-dot" style="background:#ffedd5;color:#9a3412">→</div>
+            <div>Deploy this Lambda. Name it <code>agent-order-tool</code>. Runtime: Python 3.12.</div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-step-dot" style="background:#ffedd5;color:#9a3412">→</div>
+            <div>Add a <strong>resource-based policy</strong> to allow Bedrock to invoke it: <code>aws lambda add-permission --function-name agent-order-tool --principal bedrock.amazonaws.com --action lambda:InvokeFunction --statement-id bedrock-agent</code></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="section reveal" id="step3">
+    <div class="section-eyebrow">Step 3 of 7</div>
+    <h2>Define the Action Group (OpenAPI Schema)</h2>
+
+    <div class="step-card">
+      <div class="step-num-col">
+        <div class="step-big-num">03</div>
+        <div class="step-icon-big">📋</div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <div class="step-title">Create Action Group with Function Schema</div>
+          <span class="step-service-badge" style="background:#dcfce7;color:#14532d">Bedrock Console</span>
+        </div>
+        <p class="step-desc">An <strong>Action Group</strong> tells Bedrock: "here are the tools you have access to, what parameters they need, and what Lambda to call." The agent reads this schema to decide <em>when and how</em> to use each tool.</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">Python (Boto3)</span>
+            <span class="code-filename">create_action_group.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          </div>
+          <div class="code-body"><pre><span class="kw">import</span> <span class="nb">boto3</span>
+
+bedrock_agent = boto3.client(<span class="st">"bedrock-agent"</span>, region_name=<span class="st">"us-east-1"</span>)
+
+<span class="cm"># Define the action group with a Function Schema
+# This tells the agent WHAT tools exist and HOW to call them</span>
+action_group_config = {
+    <span class="st">"agentId"</span>: <span class="st">"YOUR_AGENT_ID"</span>,         <span class="cm"># created in step 5</span>
+    <span class="st">"agentVersion"</span>: <span class="st">"DRAFT"</span>,
+    <span class="st">"actionGroupName"</span>: <span class="st">"OrderActions"</span>,
+    <span class="st">"description"</span>: <span class="st">"Tools to check and manage customer orders"</span>,
+    <span class="st">"actionGroupState"</span>: <span class="st">"ENABLED"</span>,
+
+    <span class="cm"># Link to your Lambda function</span>
+    <span class="st">"actionGroupExecutor"</span>: {
+        <span class="st">"lambda"</span>: <span class="st">"arn:aws:lambda:us-east-1:ACCOUNT:function:agent-order-tool"</span>
+    },
+
+    <span class="cm"># Define the tools (functions) available to the agent</span>
+    <span class="st">"functionSchema"</span>: {
+        <span class="st">"functions"</span>: [
+            <span class="op">{</span>
+                <span class="st">"name"</span>: <span class="st">"get_order_status"</span>,
+                <span class="st">"description"</span>: <span class="st">"Get real-time status of a customer order by order ID"</span>,
+                <span class="st">"parameters"</span>: {
+                    <span class="st">"order_id"</span>: {
+                        <span class="st">"description"</span>: <span class="st">"The unique order identifier e.g. ORD-001"</span>,
+                        <span class="st">"type"</span>: <span class="st">"string"</span>,
+                        <span class="st">"required"</span>: <span class="nb">True</span>
+                    }
+                }
+            <span class="op">}</span>,
+            <span class="op">{</span>
+                <span class="st">"name"</span>: <span class="st">"cancel_order"</span>,
+                <span class="st">"description"</span>: <span class="st">"Cancel a customer order. Only use if customer explicitly requests cancellation."</span>,
+                <span class="st">"parameters"</span>: {
+                    <span class="st">"order_id"</span>: {
+                        <span class="st">"description"</span>: <span class="st">"The order ID to cancel"</span>,
+                        <span class="st">"type"</span>: <span class="st">"string"</span>,
+                        <span class="st">"required"</span>: <span class="nb">True</span>
+                    }
+                }
+            <span class="op">}</span>
+        ]
+    }
+}
+
+response = bedrock_agent.create_agent_action_group(**action_group_config)
+<span class="nb">print</span>(<span class="nb">f</span><span class="st">"Action group created: {response['agentActionGroup']['actionGroupId']}"</span>)</pre></div>
+        </div>
+
+        <div class="callout key">
+          <span class="callout-icon">🔑</span>
+          <div><strong>Interview Gold:</strong> The <code>description</code> field in each function is <em>crucial</em> — the LLM reads these descriptions to decide which tool to call. Write them like instructions to a smart colleague, not code comments. Bad descriptions = agent calls the wrong tool.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="section reveal" id="step4">
+    <div class="section-eyebrow">Step 4 of 7</div>
+    <h2>Build the Knowledge Base (RAG)</h2>
+
+    <div class="step-card">
+      <div class="step-num-col">
+        <div class="step-big-num">04</div>
+        <div class="step-icon-big">📚</div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <div class="step-title">Create S3-Backed Knowledge Base with OpenSearch</div>
+          <span class="step-service-badge" style="background:#ede9fe;color:#4c1d95">Bedrock · S3 · OpenSearch</span>
+        </div>
+        <p class="step-desc">The Knowledge Base lets the agent answer questions from your documents (PDFs, FAQs, policy docs) using <strong>RAG (Retrieval-Augmented Generation)</strong>. Documents are chunked, embedded, and stored in OpenSearch Serverless.</p>
+
+        <div class="sub-steps">
+          <div class="sub-step">
+            <div class="sub-step-dot" style="background:#ede9fe;color:#4c1d95">1</div>
+            <div>Create an S3 bucket: <code>my-agent-knowledge-docs</code>. Upload PDFs, FAQs, policy documents.</div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-step-dot" style="background:#ede9fe;color:#4c1d95">2</div>
+            <div>In Bedrock Console → <strong>Knowledge Bases → Create</strong>. Select Amazon Titan Embeddings v2 as the embedding model.</div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-step-dot" style="background:#ede9fe;color:#4c1d95">3</div>
+            <div>Choose vector store: <strong>Amazon OpenSearch Serverless</strong> (recommended) or Aurora PostgreSQL with pgvector.</div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-step-dot" style="background:#ede9fe;color:#4c1d95">4</div>
+            <div>Set chunking strategy: <strong>Fixed size 300 tokens, 20% overlap</strong> works well for most documents.</div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-step-dot" style="background:#ede9fe;color:#4c1d95">5</div>
+            <div>Click <strong>Sync Data Source</strong> — Bedrock will chunk, embed, and index your documents automatically.</div>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">Python (Boto3)</span>
+            <span class="code-filename">test_knowledge_base.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          </div>
+          <div class="code-body"><pre><span class="kw">import</span> <span class="nb">boto3</span>
+
+bedrock_agent_runtime = boto3.client(<span class="st">"bedrock-agent-runtime"</span>)
+
+<span class="cm"># Test your KB directly before attaching to agent</span>
+response = bedrock_agent_runtime.retrieve_and_generate(
+    input={<span class="st">"text"</span>: <span class="st">"What is the return policy for electronics?"</span>},
+    retrieveAndGenerateConfiguration={
+        <span class="st">"type"</span>: <span class="st">"KNOWLEDGE_BASE"</span>,
+        <span class="st">"knowledgeBaseConfiguration"</span>: {
+            <span class="st">"knowledgeBaseId"</span>: <span class="st">"YOUR_KB_ID"</span>,
+            <span class="st">"modelArn"</span>: <span class="st">"arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0"</span>,
+            <span class="st">"retrievalConfiguration"</span>: {
+                <span class="st">"vectorSearchConfiguration"</span>: {
+                    <span class="st">"numberOfResults"</span>: <span class="nb">5</span>  <span class="cm"># top-K retrieval</span>
+                }
+            }
+        }
+    }
+)
+
+<span class="nb">print</span>(<span class="st">"Answer:"</span>, response[<span class="st">"output"</span>][<span class="st">"text"</span>])
+<span class="nb">print</span>(<span class="st">"Sources:"</span>, response[<span class="st">"citations"</span>])  <span class="cm"># shows which docs were used!</span></pre></div>
+        </div>
+
+        <div class="callout tip">
+          <span class="callout-icon">✅</span>
+          <div><strong>Pro tip:</strong> Always test your KB standalone with <code>retrieve_and_generate</code> before attaching it to an agent. This isolates KB quality issues from agent logic issues — a huge debugging time saver.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 5 -->
+  <section class="section reveal" id="step5">
+    <div class="section-eyebrow">Step 5 of 7</div>
+    <h2>Create & Configure the Bedrock Agent</h2>
+
+    <div class="step-card">
+      <div class="step-num-col">
+        <div class="step-big-num">05</div>
+        <div class="step-icon-big">🤖</div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <div class="step-title">Create Agent with Instruction Prompt</div>
+          <span class="step-service-badge" style="background:#fef3c7;color:#92400e">Bedrock Agent</span>
+        </div>
+        <p class="step-desc">The agent is the orchestrator. You configure it with a <strong>system prompt (instructions)</strong>, attach the Action Groups and Knowledge Base, and choose which foundation model powers it.</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">Python (Boto3)</span>
+            <span class="code-filename">create_agent.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          </div>
+          <div class="code-body"><pre><span class="kw">import</span> <span class="nb">boto3</span>
+
+bedrock_agent = boto3.client(<span class="st">"bedrock-agent"</span>, region_name=<span class="st">"us-east-1"</span>)
+
+<span class="cm"># Step 1: Create the agent</span>
+agent = bedrock_agent.create_agent(
+    agentName=<span class="st">"customer-support-agent"</span>,
+    description=<span class="st">"AI agent for customer support — orders and policies"</span>,
+
+    <span class="cm"># Choose your foundation model</span>
+    foundationModel=<span class="st">"anthropic.claude-3-sonnet-20240229-v1:0"</span>,
+
+    <span class="cm"># The IAM role you created in Step 1</span>
+    agentResourceRoleArn=<span class="st">"arn:aws:iam::ACCOUNT:role/BedrockAgentRole"</span>,
+
+    <span class="cm"># THE MOST IMPORTANT PART — the agent's instructions
+    # This is what the LLM reads as its system prompt</span>
+    instruction=<span class="st">"""
+    You are a helpful customer support agent for AcmeCorp.
+
+    Your capabilities:
+    1. Check order status using the get_order_status tool
+    2. Cancel orders using cancel_order (only if explicitly requested)
+    3. Answer policy questions using the knowledge base
+
+    Guidelines:
+    - Always confirm order_id before looking it up
+    - Never cancel an order without double-checking with the customer
+    - If you cannot help, offer to escalate to a human agent
+    - Keep responses concise and friendly
+    """</span>,
+
+    <span class="cm"># How long to remember conversation (in seconds)</span>
+    idleSessionTTLInSeconds=<span class="nb">600</span>
+)
+
+agent_id = agent[<span class="st">"agent"</span>][<span class="st">"agentId"</span>]
+<span class="nb">print</span>(<span class="nb">f</span><span class="st">"Agent created: {agent_id}"</span>)
+
+<span class="cm"># Step 2: Associate Knowledge Base with the agent</span>
+bedrock_agent.associate_agent_knowledge_base(
+    agentId=agent_id,
+    agentVersion=<span class="st">"DRAFT"</span>,
+    knowledgeBaseId=<span class="st">"YOUR_KB_ID"</span>,
+    description=<span class="st">"Use this for return policies, FAQs, and product information"</span>,
+    knowledgeBaseState=<span class="st">"ENABLED"</span>
+)
+
+<span class="cm"># Step 3: Prepare (compile) the agent — required after changes</span>
+bedrock_agent.prepare_agent(agentId=agent_id)
+<span class="nb">print</span>(<span class="st">"Agent prepared and ready!"</span>)
+
+<span class="cm"># Step 4: Create an alias (needed to invoke the agent)</span>
+alias = bedrock_agent.create_agent_alias(
+    agentId=agent_id,
+    agentAliasName=<span class="st">"production-v1"</span>
+)
+alias_id = alias[<span class="st">"agentAlias"</span>][<span class="st">"agentAliasId"</span>]
+<span class="nb">print</span>(<span class="nb">f</span><span class="st">"Alias created: {alias_id}"</span>)</pre></div>
+        </div>
+
+        <div class="callout warn">
+          <span class="callout-icon">⚠️</span>
+          <div><strong>Remember:</strong> After ANY change to the agent (instructions, action groups, KB), you MUST call <code>prepare_agent()</code> again. Changes don't take effect until prepared. This catches many developers by surprise.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 6 -->
+  <section class="section reveal" id="step6">
+    <div class="section-eyebrow">Step 6 of 7</div>
+    <h2>Invoke the Agent from Lambda</h2>
+
+    <div class="step-card">
+      <div class="step-num-col">
+        <div class="step-big-num">06</div>
+        <div class="step-icon-big">🚀</div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <div class="step-title">Orchestrator Lambda — API Gateway to Agent</div>
+          <span class="step-service-badge" style="background:#ffedd5;color:#9a3412">Lambda · API GW</span>
+        </div>
+        <p class="step-desc">This Lambda is the entry point of your system. API Gateway calls it, it forwards the user's message to the Bedrock Agent, and returns the streaming response.</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">Python</span>
+            <span class="code-filename">lambda_orchestrator.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          </div>
+          <div class="code-body"><pre><span class="kw">import</span> <span class="nb">boto3</span>
+<span class="kw">import</span> <span class="nb">json</span>
+<span class="kw">import</span> <span class="nb">uuid</span>
+
+bedrock_runtime = boto3.client(<span class="st">"bedrock-agent-runtime"</span>, region_name=<span class="st">"us-east-1"</span>)
+
+AGENT_ID    = <span class="st">"YOUR_AGENT_ID"</span>
+AGENT_ALIAS = <span class="st">"YOUR_ALIAS_ID"</span>  <span class="cm"># from create_agent_alias</span>
+
+<span class="kw">def</span> <span class="fn">lambda_handler</span>(event, context):
+    body = json.loads(event.get(<span class="st">"body"</span>, <span class="st">"{}"</span>))
+    user_message = body.get(<span class="st">"message"</span>)
+    session_id   = body.get(<span class="st">"session_id"</span>, str(uuid.uuid4()))
+
+    <span class="cm"># session_id ties a multi-turn conversation together
+    # Same session_id = agent remembers previous messages</span>
+
+    <span class="kw">try</span>:
+        response = bedrock_runtime.invoke_agent(
+            agentId=AGENT_ID,
+            agentAliasId=AGENT_ALIAS,
+            sessionId=session_id,
+            inputText=user_message,
+
+            <span class="cm"># Optional: pass session attributes (e.g. customer_id)</span>
+            sessionState={
+                <span class="st">"sessionAttributes"</span>: {
+                    <span class="st">"customer_id"</span>: body.get(<span class="st">"customer_id"</span>, <span class="st">"unknown"</span>)
+                }
+            }
+        )
+
+        <span class="cm"># Response is a streaming event source — collect chunks</span>
+        full_response = <span class="st">""</span>
+        <span class="kw">for</span> event_chunk <span class="kw">in</span> response[<span class="st">"completion"</span>]:
+            <span class="kw">if</span> <span class="st">"chunk"</span> <span class="kw">in</span> event_chunk:
+                chunk_bytes = event_chunk[<span class="st">"chunk"</span>][<span class="st">"bytes"</span>]
+                full_response += chunk_bytes.decode(<span class="st">"utf-8"</span>)
+
+        <span class="kw">return</span> {
+            <span class="st">"statusCode"</span>: <span class="nb">200</span>,
+            <span class="st">"headers"</span>: {<span class="st">"Content-Type"</span>: <span class="st">"application/json"</span>},
+            <span class="st">"body"</span>: json.dumps({
+                <span class="st">"answer"</span>: full_response,
+                <span class="st">"session_id"</span>: session_id  <span class="cm"># return so client can continue conversation</span>
+            })
+        }
+
+    <span class="kw">except</span> <span class="co">Exception</span> <span class="kw">as</span> e:
+        <span class="kw">return</span> {
+            <span class="st">"statusCode"</span>: <span class="nb">500</span>,
+            <span class="st">"body"</span>: json.dumps({<span class="st">"error"</span>: str(e)})
+        }</pre></div>
+        </div>
+
+        <div class="callout key">
+          <span class="callout-icon">🔑</span>
+          <div><strong>Session Management:</strong> The <code>session_id</code> enables multi-turn conversations. Pass the same <code>session_id</code> across multiple API calls and the agent remembers the conversation context. Different <code>session_id</code> = fresh conversation.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 7 -->
+  <section class="section reveal" id="step7">
+    <div class="section-eyebrow">Step 7 of 7</div>
+    <h2>Test, Debug & Monitor</h2>
+
+    <div class="step-card">
+      <div class="step-num-col">
+        <div class="step-big-num">07</div>
+        <div class="step-icon-big">🔍</div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <div class="step-title">Testing, CloudWatch & Tracing</div>
+          <span class="step-service-badge" style="background:#dbeafe;color:#1e3a5f">CloudWatch · X-Ray</span>
+        </div>
+        <p class="step-desc">Debugging agents is harder than regular Lambda because the reasoning happens inside Bedrock. Use the built-in trace to see exactly what the agent was thinking.</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">Python</span>
+            <span class="code-filename">test_with_trace.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          </div>
+          <div class="code-body"><pre><span class="cm"># Enable trace to see EXACTLY what the agent is doing internally</span>
+response = bedrock_runtime.invoke_agent(
+    agentId=AGENT_ID,
+    agentAliasId=AGENT_ALIAS,
+    sessionId=<span class="st">"test-session-001"</span>,
+    inputText=<span class="st">"What's the status of order ORD-001?"</span>,
+    enableTrace=<span class="nb">True</span>  <span class="cm"># ← THIS reveals the agent's reasoning steps</span>
+)
+
+<span class="kw">for</span> event <span class="kw">in</span> response[<span class="st">"completion"</span>]:
+    <span class="cm"># See the agent's chain-of-thought and tool calls</span>
+    <span class="kw">if</span> <span class="st">"trace"</span> <span class="kw">in</span> event:
+        trace = event[<span class="st">"trace"</span>][<span class="st">"trace"</span>]
+
+        <span class="kw">if</span> <span class="st">"orchestrationTrace"</span> <span class="kw">in</span> trace:
+            orch = trace[<span class="st">"orchestrationTrace"</span>]
+
+            <span class="cm"># Agent's reasoning / rationale</span>
+            <span class="kw">if</span> <span class="st">"rationale"</span> <span class="kw">in</span> orch:
+                <span class="nb">print</span>(<span class="st">"🧠 Agent thinking:"</span>, orch[<span class="st">"rationale"</span>][<span class="st">"text"</span>])
+
+            <span class="cm"># Tool the agent decided to call</span>
+            <span class="kw">if</span> <span class="st">"invocationInput"</span> <span class="kw">in</span> orch:
+                inv = orch[<span class="st">"invocationInput"</span>][<span class="st">"actionGroupInvocationInput"</span>]
+                <span class="nb">print</span>(<span class="st">"🔧 Tool called:"</span>, inv[<span class="st">"function"</span>])
+                <span class="nb">print</span>(<span class="st">"📥 With params:"</span>, inv[<span class="st">"parameters"</span>])
+
+            <span class="cm"># What the tool returned</span>
+            <span class="kw">if</span> <span class="st">"observation"</span> <span class="kw">in</span> orch:
+                obs = orch[<span class="st">"observation"</span>]
+                <span class="nb">print</span>(<span class="st">"📤 Tool result:"</span>, obs)
+
+    <span class="kw">if</span> <span class="st">"chunk"</span> <span class="kw">in</span> event:
+        <span class="nb">print</span>(<span class="st">"✅ Final answer:"</span>, event[<span class="st">"chunk"</span>][<span class="st">"bytes"</span>].decode())</pre></div>
+        </div>
+
+        <div class="callout tip">
+          <span class="callout-icon">✅</span>
+          <div><strong>Monitoring Checklist:</strong> Enable <strong>CloudWatch Logs</strong> on your Lambda functions. Use <strong>Bedrock model invocation logging</strong> for token usage and latency. Set <strong>CloudWatch Alarms</strong> on Lambda errors and Bedrock throttling errors. Use <strong>X-Ray tracing</strong> for end-to-end latency analysis.</div>
+        </div>
+
+        <div class="callout warn">
+          <span class="callout-icon">⚠️</span>
+          <div><strong>Cost control:</strong> Bedrock charges per input/output token. An agent doing 3 reasoning loops with a 5k-token system prompt = 15k+ tokens per request. Monitor with CloudWatch <code>InvocationMetrics</code> and set billing alerts on your account early in development.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARISON -->
+  <section class="section reveal">
+    <div class="section-eyebrow">Reference Table</div>
+    <h2>Bedrock Agents vs Alternatives</h2>
+
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Bedrock Agents</th>
+          <th>LangChain + Lambda</th>
+          <th>Step Functions + Bedrock</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Setup complexity</td>
+          <td>Low — managed</td>
+          <td>Medium — custom code</td>
+          <td>High — state machines</td>
+        </tr>
+        <tr>
+          <td>Tool calling</td>
+          <td><span class="check">✓</span> Built-in</td>
+          <td><span class="check">✓</span> Custom chains</td>
+          <td><span class="check">✓</span> Lambda states</td>
+        </tr>
+        <tr>
+          <td>RAG / Knowledge Base</td>
+          <td><span class="check">✓</span> Native Bedrock KB</td>
+          <td><span class="check">✓</span> Pinecone/FAISS</td>
+          <td><span class="cross">✗</span> Manual</td>
+        </tr>
+        <tr>
+          <td>Multi-turn memory</td>
+          <td><span class="check">✓</span> Session-based</td>
+          <td>Custom</td>
+          <td>Custom</td>
+        </tr>
+        <tr>
+          <td>Debugging</td>
+          <td><span class="check">✓</span> Trace feature</td>
+          <td>Logs only</td>
+          <td><span class="check">✓</span> Visual workflow</td>
+        </tr>
+        <tr>
+          <td>AWS integration</td>
+          <td>Native</td>
+          <td>Manual boto3</td>
+          <td>Native</td>
+        </tr>
+        <tr>
+          <td>Best for</td>
+          <td>Enterprise, fast setup</td>
+          <td>Full control, custom logic</td>
+          <td>Complex workflows, long-running</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- INTERVIEW QA -->
+  <section class="section reveal" id="interview">
+    <div class="section-eyebrow">Interview Prep</div>
+    <h2>Top Interview Questions on Bedrock Agents</h2>
+
+    <div class="interview-grid">
+      <div class="interview-card">
+        <div class="iq">Q: Explain how Bedrock Agents use ReAct.</div>
+        <div class="ia">Bedrock Agents use the <strong>ReAct (Reason + Act)</strong> framework. The agent reads the prompt, <strong>reasons</strong> about what step to take next, <strong>acts</strong> by calling a tool (Lambda), observes the result, then reasons again — looping until it produces a final answer. This gives agents true task-solving capability vs. one-shot responses.</div>
+      </div>
+
+      <div class="interview-card">
+        <div class="iq">Q: What is an Action Group and why is it important?</div>
+        <div class="ia">An Action Group is the <strong>schema definition</strong> for tools available to an agent. It maps each tool name to a Lambda ARN and describes input parameters. The agent's LLM reads these descriptions to decide <strong>which tool to invoke and with what arguments</strong>. Good descriptions = correct tool selection.</div>
+      </div>
+
+      <div class="interview-card">
+        <div class="iq">Q: How does the agent use the Knowledge Base differently from tools?</div>
+        <div class="ia">Tools (Action Groups) are used for <strong>actions with side effects</strong> — checking databases, sending emails. The Knowledge Base is used for <strong>retrieval — reading documents</strong>. The agent decides which to use based on the question type. Factual questions → KB. Data queries → Lambda tools.</div>
+      </div>
+
+      <div class="interview-card">
+        <div class="iq">Q: How do you handle multi-turn conversations?</div>
+        <div class="ia">Pass the same <strong><code>session_id</code></strong> across multiple <code>invoke_agent</code> calls. Bedrock stores conversation history server-side for up to the <code>idleSessionTTLInSeconds</code> you configured. The agent reads this history as context for follow-up questions without you managing it manually.</div>
+      </div>
+
+      <div class="interview-card">
+        <div class="iq">Q: What happens if an agent loops too many times?</div>
+        <div class="ia">Bedrock has a configurable <strong>max iterations limit</strong> (default ~10 reasoning steps). If reached, the agent returns a <code>REPROMPT</code> or <code>MAX_ITERATIONS</code> stop reason. You should handle this in your Lambda orchestrator and return a fallback message like "Let me connect you with a human agent."</div>
+      </div>
+
+      <div class="interview-card">
+        <div class="iq">Q: How do you debug an agent that's calling the wrong tool?</div>
+        <div class="ia">Enable <strong><code>enableTrace=True</code></strong> in <code>invoke_agent</code>. Read the <code>rationale</code> field to see why the agent chose that tool. Usually the fix is <strong>improving the description</strong> of the action group function — add examples of when to use it and when NOT to use it.</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// Progress bar
+window.addEventListener('scroll', () => {
+  const el = document.getElementById('progressFill');
+  const total = document.body.scrollHeight - window.innerHeight;
+  const pct = (window.scrollY / total) * 100;
+  el.style.width = pct + '%';
+});
+
+// Nav active state
+function setActive(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// Scroll spy
+const sectionIds = ['intro', 'what-is', 'architecture', 'step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7', 'interview'];
+window.addEventListener('scroll', () => {
+  let current = '';
+  sectionIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && window.scrollY >= el.offsetTop - 150) current = id;
+  });
+
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.remove('active');
+    const href = n.getAttribute('href');
+    if (href && href === '#' + current) n.classList.add('active');
+  });
+});
+
+// Reveal on scroll
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) e.target.classList.add('visible');
+  });
+}, { threshold: 0.08 });
+reveals.forEach(r => observer.observe(r));
+
+// Copy code
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    setTimeout(() => btn.textContent = 'copy', 2000);
+  });
+}
+</script>
+
+</body>
+</html>
