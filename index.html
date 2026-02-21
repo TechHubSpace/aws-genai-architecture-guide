@@ -1,16 +1,136 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>AWS GenAI Architecture Guide</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS GenAI Architecture Guide</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #0a0e1a;
+  --surface: #111827;
+  --border: #1e2d45;
+  --primary: #6366f1;
+  --accent: #f59e0b;
+  --text: #e2e8f0;
+  --muted: #64748b;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* subtle grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(99,102,241,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+.container {
+  max-width: 800px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  margin-bottom: 2rem;
+  background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+ul {
+  list-style: none;
+  display: grid;
+  gap: 1.5rem;
+}
+
+li a {
+  display: block;
+  text-decoration: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.8rem;
+  transition: 0.25s ease;
+  color: var(--text);
+}
+
+li a:hover {
+  transform: translateY(-6px);
+  border-color: var(--primary);
+}
+
+li a span {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.6rem;
+}
+
+.footer {
+  margin-top: 3rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+</style>
 </head>
 
 <body>
+
+<div class="container">
+
   <h1>AWS GenAI Architecture Guide</h1>
 
   <ul>
-    <li><a href="aws-bedrock-agent-guide.html">Bedrock Guide</a></li>
-    <li><a href="aws-services-explainer.html">AWS Services Explainer</a></li>
+    <li>
+      <a href="aws-bedrock-agent-guide.html">
+        <span>Guide 01</span>
+        Bedrock Guide
+      </a>
+    </li>
+
+    <li>
+      <a href="aws-services-explainer.html">
+        <span>Guide 02</span>
+        AWS Services Explainer
+      </a>
+    </li>
   </ul>
+
+  <div class="footer">
+    Static site · GitHub Pages
+  </div>
+
+</div>
 
 </body>
 </html>
